@@ -80,7 +80,13 @@ void createThreads(){
 
 void *dealer(void *d){
 
-    turn = 1;
+    if(round_num == 1) {
+        turn = 1;
+    } else if(round_num == 2) {
+        turn = 2;
+    } else {
+        turn = 3;
+    }
     shuffle();
     deal();
     printf("\nDEALER: shuffle \n");
