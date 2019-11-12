@@ -9,16 +9,10 @@
 #define NUM_OF_ROUNDS 3
 #define NUM_OF_PLAYERS 3
 
-pthread_mutex_t player_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
-pthread_cond_t win_condition = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t dealer_lock = PTHREAD_MUTEX_INITIALIZER;
-
 FILE *logFile;
 int deck[NUM_OF_CARDS];
 int *top, *bottom;
 int seed;
-int turn = 0;
 int p1_hand [HAND_SIZE];
 int p2_hand [HAND_SIZE];
 int p3_hand [HAND_SIZE];
@@ -27,7 +21,13 @@ pthread_t playerThread1;
 pthread_t playerThread2;
 pthread_t playerThread3;
 bool gameOver = false;
+int turn = 0;
 int round_num = 1;
+
+pthread_mutex_t player_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
+pthread_cond_t win_condition = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t dealer_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void setUpGame();
 void shuffle();
@@ -37,12 +37,14 @@ void *dealer(void *d);
 void createThreads();
 void displayDeck();
 void deal();
-int setSeed();
 
 
 // run the game
 int main(int argc, char *argv[]){
 
+    logFile = fopen(LOG_FILE, "w");
+
+    // set up random
     seed = atoi(argv[1]);
     srand(seed);
 
@@ -52,18 +54,17 @@ int main(int argc, char *argv[]){
 
     // play designated number of rounds
     while(round_num <= NUM_OF_ROUNDS) {
-        printf("ROUND %d\n", round_num);
-      createThreads();
-      round_num++;
-      gameOver = false;
+        createThreads();
+        round_num++;
+        gameOver = false;
     }
-
 
     exit(EXIT_SUCCESS);
 }
 
 
 void createThreads(){
+
     // create
     pthread_create(&dealerThread, NULL, &dealer, NULL); // dealer
     pthread_create(&playerThread1, NULL, &player, (void *)1); // player 1
@@ -79,23 +80,25 @@ void createThreads(){
 
 void *dealer(void *d){
 
-    int dealerID = 0;
-    turn = 0;
-    int dealer_hand [HAND_SIZE];
-    takeTurn(dealerID, &dealer_hand);
-    //pthread_cond_broadcast(&win_condition);
+    turn = 1;
+    shuffle();
+    deal();
+    printf("\nDEALER: shuffle \n");
+    pthread_cond_broadcast(&condition);
 
     pthread_mutex_lock(&dealer_lock); // lock
     while(!gameOver){ // while game is not over
         pthread_cond_wait(&win_condition, &dealer_lock);
     }
     pthread_mutex_unlock(&dealer_lock); //unlock
+
     printf("DEALER: exits round \n");
     pthread_exit(NULL);
 }
 
 void *player(void *p) {
 
+    // get player number
     int player = *(int *)&p;
 
     int hand [HAND_SIZE];
@@ -115,10 +118,8 @@ void *player(void *p) {
 
     while(gameOver == 0){ // while game not over
         pthread_mutex_lock(&player_lock); // lock
-        while(gameOver == 0 && player != turn){
+        while(gameOver == 0 && !(player == turn || turn == 0)){
            // wait
-           printf("PLayer: %d\n", player);
-           printf("Turn: %d\n", turn);
             pthread_cond_wait(&condition, &player_lock);
         }
         if(gameOver == 0){ // go
@@ -134,12 +135,7 @@ void *player(void *p) {
 
 
 void takeTurn(int player, int* hand) {
-    if(player == 0){
-      shuffle();
-      deal();
-      printf("DEALER: shuffle \n");
-    }
-    else{
+
     // print hand before draw
     printf("PLAYER %d: hand %d \n", player, hand[0]);
 
@@ -178,10 +174,9 @@ void takeTurn(int player, int* hand) {
         }
 
         displayDeck();
-    }
   }
     turn++;
-    if (turn > 3){
+    if (turn > NUM_OF_PLAYERS){
       turn = 1;
     }
     pthread_cond_broadcast(&condition);
@@ -210,6 +205,7 @@ void setUpGame(){
 }
 
 void shuffle(){
+
   int tempCards = NUM_OF_CARDS;
 
   // shuffle the deck
@@ -233,29 +229,22 @@ void deal(){
 }
 void displayDeck(){
 
-  logFile = fopen(LOG_FILE, "w");
-
-  fputs("DECK ", logFile);
+  //fputs("DECK ", logFile);
   printf("DECK ");
   int *deckPtr = top;
   char str[10] = {0};
 
   //get integer into char to print to file
   while(deckPtr != bottom){
-    printf("%d ", *deckPtr);
+      //fputs("%d", *deckPtr, logFile);
+      printf("%d ", *deckPtr);
+      deckPtr++;
 
-    //fputs(logFile, "%d", *deckPtr);
-    //printf("%d ", *deckPtr);
-    deckPtr++;
-    if(deckPtr == bottom){
-      //fputs(logFile, "%d", *deckPtr);
-      printf("%d \n", *deckPtr);
-
-    }
+      if(deckPtr == bottom){
+          //fputs("%d \n", *deckPtr, logFile);
+          printf("%d \n", *deckPtr);
+      }
   }
 
-
-
-  fclose(logFile);
   printf("\n");
 }
