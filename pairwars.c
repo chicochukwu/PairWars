@@ -51,8 +51,8 @@ int main(int argc, char *argv[]){
     srand(seed);
 
     setUpGame();
-    shuffle();
-    displayDeck();
+    printf("DECK ");
+    displayCards(deck, 0, 52);
 
     // play designated number of rounds
     while(round_num <= NUM_OF_ROUNDS) {
@@ -224,7 +224,8 @@ void setUpGame(){
        cardNum++;
     }
     top = deck;
-    bottom = deck + (tempCards - 1) ;
+    bottom = deck + (tempCards - 1);
+    shuffle();
 }
 
 void shuffle(){
