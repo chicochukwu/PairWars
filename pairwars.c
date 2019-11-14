@@ -36,8 +36,7 @@ void *player(void *p);
 void *dealer(void *d);
 void createThreads();
 void deal();
-void displayCards(int *cards, int singleCard, int size);
-
+void displayCards(int*, int, int);
 
 // run the game
 int main(int argc, char *argv[]){
@@ -53,6 +52,7 @@ int main(int argc, char *argv[]){
 
     // show the deck
     printf("DECK ");
+    fprintf(logFile, "DECK ");
     displayCards(deck, 0, 52);
 
     // play designated number of rounds
@@ -63,6 +63,8 @@ int main(int argc, char *argv[]){
     }
 
     exit(EXIT_SUCCESS);
+
+    fclose(logFile);
 }
 
 // create threads for dealer and players
@@ -87,7 +89,7 @@ void *dealer(void *d){
     shuffle();
     deal();
     printf("\nDEALER: shuffle \n");
-
+    fprintf(logFile, "\nDEALER: shuffle \n");
     // players take turns going first
     if(round_num == 1) {
         turn = 1;
@@ -107,6 +109,8 @@ void *dealer(void *d){
 
     // exit when round is over
     printf("DEALER: exits round \n");
+    //print to file
+    fprintf(logFile, "DEALER: exits round \n");
     pthread_exit(NULL);
 }
 
@@ -145,6 +149,8 @@ void *player(void *p) {
 
     // exit when round is over
     printf("PLAYER %d: exits round \n", player);
+    //print to file
+    fprintf(logFile, "PLAYER %d: exits round \n", player);
     pthread_exit(NULL);
 }
 
@@ -153,31 +159,41 @@ void takeTurn(int player, int* hand) {
 
     // print hand before draw
     printf("HAND ");
+    fprintf(logFile, "HAND ");
     displayCards(hand, 0, 1);
+    //printToFile(hand, 0, 1);
     printf("PLAYER %d: hand ", player);
+    fprintf(logFile, "PLAYER %d: hand ", player);
+
     displayCards(hand, 0, 1);
 
     // take a card from the top of the deck
     hand[1] = *top;
     top++;
     printf("PLAYER %d: draws ", player);
+    fprintf(logFile, "PLAYER %d: draws ", player);
     displayCards(0, hand[1], 1);
 
     // print hand after draw
     printf("HAND ");
+    fprintf(logFile, "HAND ");
     displayCards(hand, 0, 2);
     printf("PLAYER %d: hand ", player);
+    fprintf(logFile, "PLAYER %d: hand ", player);
     displayCards(hand, 0, 2);
 
     // check if match
     if (hand[0] == hand[1]) { //match
         printf("WIN yes\n");
+        fprintf(logFile, "WIN yes\n");
         printf("PLAYER %d: wins\n", player);
+        fprintf(logFile, "PLAYER %d: win\n", player);
         gameOver = 1; // game over
         pthread_cond_signal(&win_condition);
 
     } else { //no match
         printf("WIN no \n");
+        fprintf(logFile, "WIN no \n");
         top--;
         int *ptr = top;
 
@@ -190,12 +206,14 @@ void takeTurn(int player, int* hand) {
         //discard one card
         int i = rand() % 2; // get a 0 or 1
         printf("PLAYER %d: discards ", player);
+        fprintf(logFile, "PLAYER %d: discards ", player);
         displayCards(0, hand[i], 1); // use random 0 or 1 as index
         *bottom = hand[i];
         if(i == 0){ // move card to first position in the array
           hand[0] = hand[1];
         }
         printf("DECK ");
+        fprintf(logFile, "DECK ");
         displayCards(deck, 0, 52);
   }
     // signal next players turn
@@ -268,15 +286,21 @@ void displayCards(int *cards, int singleCard, int size) {
         }
         if(card == 11) {
             printf("J "); // jack
+            fprintf(logFile, "11 ");
         } else if(card == 12) {
             printf("Q "); // queen
+            fprintf(logFile, "12 ");
         } else if(card == 13) {
             printf("K "); // king
+            fprintf(logFile, "13 ");
         } else if(card == 1) {
             printf("A "); // ace
+            fprintf(logFile, "1 ");
         } else {
             printf("%d ", card); // any other card
+            fprintf(logFile, "%d ", card);
         }
     }
     printf("\n");
+    fprintf(logFile, "\n");
 }
